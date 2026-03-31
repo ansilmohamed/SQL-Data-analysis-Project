@@ -29,3 +29,43 @@ MODIFY COLUMN `date` DATE;
 
 SELECT `date` FROM layoffs_staging LIMIT 20;
 SELECT COUNT(*) FROM layoffs_staging;
+
+-- find duplicates
+WITH duplicate_cte AS (
+    SELECT *,
+    ROW_NUMBER() OVER(
+        PARTITION BY company, location, industry, 
+                     total_laid_off, percentage_laid_off, 
+                     `date`, stage, country, funds_raised_millions
+    ) AS row_num
+    FROM layoffs_staging
+)
+SELECT * FROM duplicate_cte
+WHERE row_num > 1;
+
+CREATE TABLE layoffs_staging2 AS
+SELECT *,
+ROW_NUMBER() OVER(
+    PARTITION BY company, location, industry, 
+                 total_laid_off, percentage_laid_off, 
+                 `date`, stage, country, funds_raised_millions
+) AS row_num
+FROM layoffs_staging;
+
+SELECT * FROM layoffs_staging2
+WHERE row_num > 1;
+
+DELETE FROM layoffs_staging2
+WHERE row_num > 1;
+
+SET SQL_SAFE_UPDATES = 0;
+
+DELETE FROM layoffs_staging2
+WHERE row_num > 1;
+SELECT COUNT(*) FROM layoffs_staging2;
+
+SELECT company, TRIM(company)
+FROM layoffs_staging2;
+
+UPDATE layoffs_staging2
+SET company = TRIM(company);
